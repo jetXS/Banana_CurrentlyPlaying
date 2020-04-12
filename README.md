@@ -2,6 +2,8 @@
 
 A simple integration of the Spotify API for learning purpose. It can be used to understand the authentification process and add a small widget to your TouchDesigner streams with the currently playing track, artist and album cover.
 
+![Banner with Joe Exotic](./01_MEDIA/banner.png)
+
 ## How to setup
 ### Spotify Developer App
 1. You will need first to register a Spotify Developer App as I am not providing Client ID and Client secret
@@ -46,3 +48,7 @@ The properties are:
 - Artists - A list of artists on the currently playing track - String - `op.BANANA_CURRENTLYPLAYING.Artists`
 - Trackname - The title on the currently playing track - String - `op.BANANA_CURRENTLYPLAYING.Trackname`
 - Albumcover - The URL to the image of the album cover of the currently playing track - String - `op.BANANA_CURRENTLYPLAYING.Albumcover`
+
+As long as something is playing from any of your devices (not necessarily local stream, it can be from your phone or Sonos or whatever you like.) then these informations will be updated with a small delay.
+
+When you pause or close Spotify, the values are empty.
