@@ -52,3 +52,6 @@ The properties are:
 As long as something is playing from any of your devices (not necessarily local stream, it can be from your phone or Sonos or whatever you like.) then these informations will be updated with a small delay.
 
 When you pause or close Spotify, the values are empty.
+
+# BANANA_
+The Banana_ repos are community oriented repositories, they are under GNU GPL 3 license. Please feel free to report issues, do pull requests or RFE, it's a community effort.
