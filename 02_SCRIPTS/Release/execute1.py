@@ -31,6 +31,7 @@ def onProjectPreSave():
 	return
 
 def onProjectPostSave():
+	parent().OnPostSave()
 	return
 
 	

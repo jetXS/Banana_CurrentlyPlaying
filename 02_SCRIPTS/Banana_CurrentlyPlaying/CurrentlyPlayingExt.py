@@ -24,6 +24,8 @@ class CurrentlyPlayingExt:
 		self.ownerComp = ownerComp
 		self.client = op('webclient1')
 		self.userCode = ''
+		self.clientId = ''
+		self.clientSecret = ''
 
 		TDF.createProperty(self, 'Artists', value='', dependable=True,
 						   readOnly=False)
@@ -143,9 +145,9 @@ class CurrentlyPlayingExt:
 			extFile.par.file = ''
 
 		# Empty sensitive infos
-		clientId = self.ownerComp.par.Clientid.eval()
+		self.clientId = self.ownerComp.par.Clientid.eval()
 		self.ownerComp.par.Clientid = ''
-		clientSecret = self.ownerComp.par.Clientsecret.eval()
+		self.clientSecret = self.ownerComp.par.Clientsecret.eval()
 		self.ownerComp.par.Clientsecret = ''
 		self.ownerComp.par.Token = ''
 		self.ownerComp.par.Refreshtoken = ''
@@ -155,22 +157,23 @@ class CurrentlyPlayingExt:
 		self.ownerComp.save(filePath)
 
 		# Put back sensitive infos
-		self.ownerComp.par.Clientid = clientId
-		self.ownerComp.par.Clientsecret = clientSecret		
+		self.ownerComp.par.Clientid = self.clientId
+		self.ownerComp.par.Clientsecret = self.clientSecret		
 
 		# Then we reload the dev tox because we don't want to break everything
 		self.ownerComp.par.reinitnet.pulse()
 
 	# A function to save tox itself on Ctrl+s
 	def PreSave(self):
-		clientId = self.ownerComp.par.Clientid.eval()
+		self.clientId = self.ownerComp.par.Clientid.eval()
 		self.ownerComp.par.Clientid = ''
-		clientSecret = self.ownerComp.par.Clientsecret.eval()
+		self.clientSecret = self.ownerComp.par.Clientsecret.eval()
 		self.ownerComp.par.Clientsecret = ''
 		self.ownerComp.par.Token = ''
 		self.ownerComp.par.Refreshtoken = ''
 
 		self.ownerComp.save(self.ownerComp.par.externaltox.eval())
 
-		self.ownerComp.par.Clientid = clientId
-		self.ownerComp.par.Clientsecret = clientSecret		
+	def PostSave(self):
+		self.ownerComp.par.Clientid = self.clientId
+		self.ownerComp.par.Clientsecret = self.clientSecret

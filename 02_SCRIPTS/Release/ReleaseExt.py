@@ -33,4 +33,10 @@ class ReleaseExt:
 				comp.PreSave()
 			else:
 				comp.save(comp.par.externaltox.eval())
+
+	def OnPostSave(self):
+		rootComps = root.findChildren(type=COMP, parName='externaltox', onlyNonDefaults=True)
+		for comp in rootComps:
+			if hasattr(comp, 'PostSave'):
+				comp.PostSave()					
 					
