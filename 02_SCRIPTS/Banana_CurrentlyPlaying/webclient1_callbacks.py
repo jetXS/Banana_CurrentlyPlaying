@@ -16,7 +16,9 @@ def onResponse(webClientDAT, statusCode, headerDict, data):
 		parent().Albumcover = ''
 		parent().Artists = ''
 		parent().Trackname = ''
-	
+	elif statusCode['code'] == 429:
+		print('Rate limited.')
+
 	# In case if authentification issue, data might be empty
 	if len(data):
 		data = parent().ResponseBytesAsJson(data)
@@ -26,6 +28,11 @@ def onResponse(webClientDAT, statusCode, headerDict, data):
 			parent().SaveAccessTokenAndConnect(data)
 		elif 'item' in data and data['currently_playing_type'] != 'unknown':
 			parent().SetCurrentlyPlaying(data)
-			
+		elif 'meta' in data and 'analyzer_version' in data['meta']:
+			parent().SetCurrentAudioAnalysis(data)
+			print('Setting analysis')
+		elif 'danceability' in data:
+			parent().SetCurrentAudioFeatures(data)
+			print('Setting features')
 	return
 	

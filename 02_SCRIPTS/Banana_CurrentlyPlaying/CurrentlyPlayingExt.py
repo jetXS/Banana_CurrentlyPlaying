@@ -33,6 +33,20 @@ class CurrentlyPlayingExt:
 						   readOnly=False)
 		TDF.createProperty(self, 'Albumcover', value='', dependable=True,
 						   readOnly=False)
+		TDF.createProperty(self, 'Analysis', value=None, dependable=True,
+						   readOnly=False)		
+		TDF.createProperty(self, 'Features', value=None, dependable=True,
+						   readOnly=False)
+
+		# stored items (persistent across saves and re-initialization):
+		storedItems = [
+			# Only 'name' is required...
+			{'name': 'Id', 'default': '', 'readOnly': False,
+			 						'property': False, 'dependable': False},
+		]
+
+		self.stored = StorageManager(self, ownerComp, storedItems)
+		self.stored['Id'] = ''
 
 		self.client.par.token = ''
 		self.ownerComp.par.Token = ''
@@ -130,9 +144,48 @@ class CurrentlyPlayingExt:
 
 	# Updates the dependable propreties after getting an answer from the Spotify API
 	def SetCurrentlyPlaying(self, data):
-		self.ownerComp.Artists = ', '.join([artist['name'] for artist in data['item']['artists']]) if data['is_playing'] and 'artists' in data['item'] else ''
-		self.ownerComp.Trackname = data['item']['name'] if data['is_playing'] and 'name' in data['item'] else ''
-		self.ownerComp.Albumcover = data['item']['album']['images'][0]['url'] if data['is_playing'] and 'album' in data['item'] else ''
+		if self.stored['Id'] != data['item']['id']:
+			self.stored['Id'] = data['item']['id']
+			self.ownerComp.Artists = ', '.join([artist['name'] for artist in data['item']['artists']]) if data['is_playing'] and 'artists' in data['item'] else ''
+			self.ownerComp.Trackname = data['item']['name'] if data['is_playing'] and 'name' in data['item'] else ''
+			self.ownerComp.Albumcover = data['item']['album']['images'][0]['url'] if data['is_playing'] and 'album' in data['item'] else ''
+			self.GetAudioAnalysis()
+			self.GetAudioFeatures()
+		if not self.ownerComp.Analysis:
+			run('op.BANANA_CURRENTLYPLAYING.GetAudioAnalysis()', delayFrames = 600)			
+			#self.GetAudioAnalysis()
+		if not self.ownerComp.Features:
+			run('op.BANANA_CURRENTLYPLAYING.GetAudioFeatures()', delayFrames = 1200)
+			#self.GetAudioFeatures()
+
+	"""
+	SPOTIFY TRACK API
+	"""
+	def GetAudioAnalysis(self):
+		url = 'https://api.spotify.com/v1/audio-analysis/' + self.stored['Id']
+		method = 'GET'
+		header = {
+			'Authorization': 'Bearer ' + self.client.par.token.eval()
+		}
+		data = {}
+		self.client.request(url, method, header=header, data=data)
+		print('Sent call for Analysis')
+
+	def SetCurrentAudioAnalysis(self, data):
+		self.ownerComp.Analysis = data
+
+	def GetAudioFeatures(self):
+		url = 'https://api.spotify.com/v1/audio-features/' + self.stored['Id']
+		method = 'GET'
+		header = {
+			'Authorization': 'Bearer ' + self.client.par.token.eval()
+		}
+		data = {}
+		self.client.request(url, method, header=header, data=data)		
+		print('Sent call for Features')
+
+	def SetCurrentAudioFeatures(self, data):
+		self.ownerComp.Features = data
 
 	"""
 	Tools
