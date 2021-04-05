@@ -38,6 +38,9 @@ class CurrentlyPlayingExt:
 		TDF.createProperty(self, 'Features', value=None, dependable=True,
 						   readOnly=False)
 
+		TDF.createProperty(self, 'RequestsQueue', value=[], dependable=True,
+						   readOnly=False)
+
 		# stored items (persistent across saves and re-initialization):
 		storedItems = [
 			# Only 'name' is required...
@@ -66,7 +69,7 @@ class CurrentlyPlayingExt:
 	def GetIdentifiedAccess(self):
 		url = 'https://accounts.spotify.com/authorize'
 		queryPar = 'client_id={client_id}&response_type=code&redirect_uri={redirect_uri}&scope={scope}'
-		newString = queryPar.format(client_id=self.ownerComp.par.Clientid.eval(), redirect_uri=self.ownerComp.par.Redirecturi.eval(), scope='user-read-currently-playing')	
+		newString = queryPar.format(client_id=self.ownerComp.par.Clientid.eval(), redirect_uri=self.ownerComp.par.Redirecturi.eval() + ':' + str(self.ownerComp.par.Port.eval()), scope='user-read-currently-playing')	
 		webbrowser.open_new_tab(url + '?' + newString)
 
 	# Query the Spotify API for final authentification by exchanging the user code for a token
@@ -81,9 +84,12 @@ class CurrentlyPlayingExt:
 		data = {
 			'grant_type': 'client_credentials' if not code else 'authorization_code',
 			'code': code,
-			'redirect_uri': self.ownerComp.par.Redirecturi.eval()
+			'redirect_uri': self.ownerComp.par.Redirecturi.eval() + ':' + str(self.ownerComp.par.Port.eval())
 		}
-		self.client.request(url, method, header=header, data=data)
+		self.ownerComp.RequestsQueue.append({
+			'id': self.client.request(url, method, header=header, data=data), # the Id the webClient is returning
+			'type': 'access_token', # can be access_token, currently_playing, analysis, features
+		})
 	
 	# An API request made when the current token is expired. We are using the refresh token to generate a new token from the Spotify API
 	def OnTokenExpired(self):
@@ -97,7 +103,10 @@ class CurrentlyPlayingExt:
 			'grant_type': 'refresh_token',
 			'refresh_token': self.ownerComp.par.Refreshtoken.eval()
 		}
-		self.client.request(url, method, header=header, data=data)				
+		self.ownerComp.RequestsQueue.append({
+			'id': self.client.request(url, method, header=header, data=data), # the Id the webClient is returning
+			'type': 'expired_token', # can be access_token, currently_playing, analysis, features, expired_token
+		})
 
 	"""
 	HELPERS
@@ -140,23 +149,28 @@ class CurrentlyPlayingExt:
 			'Authorization': 'Bearer ' + self.client.par.token.eval()
 		}
 		data = {}
-		self.client.request(url, method, header=header, data=data)
-
+		
+		# could add a timestamp ? 
+		self.ownerComp.RequestsQueue.append({
+			'id': self.client.request(url, method, header=header, data=data), # the Id the webClient is returning
+			'type': 'currently_playing', # can be access_token, currently_playing, analysis, features, expired_token
+		})
+		debug('Ping')
+	
 	# Updates the dependable propreties after getting an answer from the Spotify API
 	def SetCurrentlyPlaying(self, data):
+		debug('Pong')
 		if self.stored['Id'] != data['item']['id']:
 			self.stored['Id'] = data['item']['id']
 			self.ownerComp.Artists = ', '.join([artist['name'] for artist in data['item']['artists']]) if data['is_playing'] and 'artists' in data['item'] else ''
 			self.ownerComp.Trackname = data['item']['name'] if data['is_playing'] and 'name' in data['item'] else ''
 			self.ownerComp.Albumcover = data['item']['album']['images'][0]['url'] if data['is_playing'] and 'album' in data['item'] else ''
-			self.GetAudioAnalysis()
-			self.GetAudioFeatures()
-		if not self.ownerComp.Analysis:
-			run('op.BANANA_CURRENTLYPLAYING.GetAudioAnalysis()', delayFrames = 600)			
-			#self.GetAudioAnalysis()
-		if not self.ownerComp.Features:
-			run('op.BANANA_CURRENTLYPLAYING.GetAudioFeatures()', delayFrames = 1200)
-			#self.GetAudioFeatures()
+			
+			if self.ownerComp.par.Getaudioanalysis:
+				self.GetAudioAnalysis()
+			
+			if self.ownerComp.par.Getaudiofeatures:
+				self.GetAudioFeatures()
 
 	"""
 	SPOTIFY TRACK API
@@ -168,7 +182,10 @@ class CurrentlyPlayingExt:
 			'Authorization': 'Bearer ' + self.client.par.token.eval()
 		}
 		data = {}
-		self.client.request(url, method, header=header, data=data)
+		self.ownerComp.RequestsQueue.append({
+			'id': self.client.request(url, method, header=header, data=data), # the Id the webClient is returning
+			'type': 'analysis', # can be access_token, currently_playing, analysis, features, expired_token
+		})
 		print('Sent call for Analysis')
 
 	def SetCurrentAudioAnalysis(self, data):
@@ -181,7 +198,10 @@ class CurrentlyPlayingExt:
 			'Authorization': 'Bearer ' + self.client.par.token.eval()
 		}
 		data = {}
-		self.client.request(url, method, header=header, data=data)		
+		self.ownerComp.RequestsQueue.append({
+			'id': self.client.request(url, method, header=header, data=data), # the Id the webClient is returning
+			'type': 'features', # can be access_token, currently_playing, analysis, features, expired_token
+		})
 		print('Sent call for Features')
 
 	def SetCurrentAudioFeatures(self, data):
@@ -211,7 +231,7 @@ class CurrentlyPlayingExt:
 
 		# Put back sensitive infos
 		self.ownerComp.par.Clientid = self.clientId
-		self.ownerComp.par.Clientsecret = self.clientSecret		
+		self.ownerComp.par.Clientsecret = self.clientSecret
 
 		# Then we reload the dev tox because we don't want to break everything
 		self.ownerComp.par.reinitnet.pulse()
