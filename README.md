@@ -2,8 +2,6 @@
 
 A simple integration of the Spotify API for learning purpose. It can be used to understand the authentification process and add a small widget to your TouchDesigner streams with the currently playing track, artist and album cover.
 
-![Banner with Joe Exotic](./01_MEDIA/banner.png)
-
 ## How to setup
 ### Spotify Developer App
 1. You will need first to register a Spotify Developer App as I am not providing Client ID and Client secret
